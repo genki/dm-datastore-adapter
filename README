@@ -1,0 +1,13 @@
+dm-datastore-adapter
+=======
+
+This is a DataMapper adapter to DataStore of Google App Engine.
+
+Setup
+=====
+
+  gem install dm-datastore-adapter
+
+Setting up
+----------
+
