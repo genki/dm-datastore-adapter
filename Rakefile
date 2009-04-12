@@ -27,7 +27,6 @@ spec = Gem::Specification.new do |s|
   s.add_dependency('dm-core', '>= 1.0.9')
   s.require_path = 'lib'
   s.files = %w(LICENSE README Rakefile TODO) + Dir.glob("{lib,spec}/**/*")
-  
 end
 
 Rake::GemPackageTask.new(spec) do |pkg|
@@ -50,6 +49,11 @@ task :gemspec do
   File.open("#{GEM_NAME}.gemspec", "w") do |file|
     file.puts spec.to_ruby
   end
+end
+
+desc "Run specs"
+task :spec do
+  sh "jruby -S spec --color spec"
 end
 
 desc 'Package and upload the release to rubyforge.'
@@ -77,3 +81,5 @@ task :release => :package do |t|
 	puts "Releasing #{GEM_NAME} v. #{GEM_VERSION}"
 	rf.add_release RUBYFORGE_PROJECT, GEM_NAME, GEM_VERSION, *files
 end
+
+task :default => :spec

@@ -58,7 +58,7 @@ module DataMapper
         Collection.new(query) do |collection|
           iter.each do |entity|
             collection.load(query.fields.map do |property|
-              property.typecast(ds_get(entity, property.field)))
+              property.typecast(ds_get(entity, property.field))
             end)
           end
         end
@@ -73,7 +73,7 @@ module DataMapper
           DS::Service.prepare(q).asSingleEntity
         end
         query.model.load(query.fields.map do |property|
-          property.typecast(ds_get(entity, property.field)))
+          property.typecast(ds_get(entity, property.field))
         end)
       end
 
@@ -188,11 +188,13 @@ module DataMapper
 
       def ds_set(entity, name, value)
         if value.is_a?(String) && value.length >= 500
-          entity.set_property(name.to_s, DS::Text.new(value)
+          entity.set_property(name.to_s, DS::Text.new(value))
         else
           entity.set_property(name.to_s, value)
         end
       end
     end
+
+    DatastoreAdapter = DataStoreAdapter
   end
 end

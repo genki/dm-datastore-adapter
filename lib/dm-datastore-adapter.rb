@@ -7,6 +7,7 @@ if defined?(Merb::Plugins)
   
   Merb::BootLoader.before_app_loads do
     # require code that must be loaded before the application
+    require File.join(%w(dm-datastore-adapter datastore-adapter))
   end
   
   Merb::BootLoader.after_app_loads do
