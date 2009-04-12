@@ -30,6 +30,7 @@ describe "dm-datastore-adapter" do
   end
 
   it "should save person successfully" do
+    pending "Needing mocks"
     @person.save.should be_true
   end
 end

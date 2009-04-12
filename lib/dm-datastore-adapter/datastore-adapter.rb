@@ -1,4 +1,6 @@
 require 'java'
+require 'addressable/uri'
+require 'appengine-api-1.0-sdk-1.2.0.jar'
 
 module DataMapper
   module Adapters
@@ -123,7 +125,7 @@ module DataMapper
             :host     => uri_or_options[:host],
             :path     => uri_or_options[:database]).to_s
         end
-        ::URI.parse(uri_or_options)
+        Addressable::URI.parse(uri_or_options)
       end
 
     private
