@@ -11,3 +11,9 @@ Setup
 Setting up
 ----------
 
+  In your config/database.yml,
+
+    production:
+      :adapter: datastore
+      :host:    localhost
+

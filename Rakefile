@@ -5,7 +5,7 @@ require 'merb-core'
 require 'merb-core/tasks/merb'
 
 GEM_NAME = "dm-datastore-adapter"
-GEM_VERSION = "0.0.1"
+GEM_VERSION = "0.0.2"
 AUTHOR = "Genki Takiuchi"
 EMAIL = "genki@s21g.com"
 HOMEPAGE = "http://jmerbist.appspot.com/"

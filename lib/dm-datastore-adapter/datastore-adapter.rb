@@ -26,21 +26,50 @@ module DataMapper
           resource.attributes.each do |key, value|
             ds_set(entity, key, value)
           end
-          if DS::Service.put(entity)
+          begin
+            ds_key = DS::Service.put(entity)
+          rescue Exception
+          else
+            ds_id = ds_key.get_id
+            resource.model.key.each do |property|
+              resource.attribute_set property.field, ds_id
+              ds_set(entity, property.field, ds_id)
+            end
+            DS::Service.put(entity)
             created += 1
           end
         end
         created
       end
 
+      def update(attributes, query)
+        updated = 0
+        resources = read_many(query)
+        resources.each do |resource|
+          entity = DS::Service.get(ds_key_from_resource(resource))
+          resource.attributes.each do |key, value|
+            ds_set(entity, key, value)
+          end
+          begin
+            ds_key = DS::Service.put(entity)
+          rescue Exception
+          else
+            resource.model.key.each do |property|
+              resource.attribute_set property.field, ds_key.get_id
+            end
+            updated += 1
+          end
+        end
+        updated
+      end
+
       def delete(query)
         deleted = 0
         resources = read_many(query)
         resources.each do |resource|
-          key = DS::KeyFactory.create_key(
-            resource.name, ds_key_from_resource_key(resource.key))
           begin
-            DS::Service.delete(key)
+            ds_key = ds_key_from_resource(resource)
+            DS::Service.delete([ds_key].to_java(DS::Key))
           rescue Exception
           else
             deleted += 1
@@ -60,7 +89,7 @@ module DataMapper
         Collection.new(query) do |collection|
           iter.each do |entity|
             collection.load(query.fields.map do |property|
-              property.typecast(ds_get(entity, property.field))
+              property.key? ? entity.key.get_id : ds_get(entity, property.field)
             end)
           end
         end
@@ -70,35 +99,18 @@ module DataMapper
         q = build_query(query)
         fo = build_fetch_option(query)
         entity = if fo
-          DS::Service.prepare(q).as_iterable(fo).first
+          DS::Service.prepare(q).as_iterable(fo).map{|i| break i}
         else 
           DS::Service.prepare(q).asSingleEntity
         end
+        return nil if entity.blank?
         query.model.load(query.fields.map do |property|
-          property.typecast(ds_get(entity, property.field))
-        end)
-      end
-
-      def update(attributes, query)
-        updated = 0
-        resources = read_many(query)
-        resources.each do |resource|
-          ds_key = DS::KeyFactory.create_key(
-            resource.class.name,
-            ds_key_from_resource_key(resource.key))
-          entity = DS::Service.get(ds_key)
-          resource.attributes.each do |key, value|
-            ds_set(entity, key, value)
-          end
-          if DS::Service.put(entity)
-            updated += 1
-          end
-        end
-        updated
+          property.key? ? entity.key.get_id : ds_get(entity, property.field)
+        end, query)
       end
 
       def aggregate(query)
-        op = query.fields.first{|p| p.kind_of?(DataMapper::Query::Operator)}
+        op = query.fields.find{|p| p.kind_of?(DataMapper::Query::Operator)}
         if op.nil?
           raise NotImplementedError, "No operator supplied."
         end
@@ -112,7 +124,7 @@ module DataMapper
       def count(query)
         q = build_query(query)
         count = DS::Service.prepare(q).countEntities
-        query.limit ? [count, query.limit].min : count
+        [query.limit ? [count, query.limit].min : count]
       end
 
     protected
@@ -129,12 +141,8 @@ module DataMapper
       end
 
     private
-      def ds_key_from_resource_key(key)
-        key.size == 1 && key[0].kind_of?(Fixnum) ? key[0] : Marshal.dump(key)
-      end
-
-      def resource_key_from_ds_key(key)
-        key.kind_of?(Fixnum) ? [key] : Marshal.load(ikey)
+      def ds_key_from_resource(resource)
+        DS::KeyFactory.create_key(resource.class.name, resource.key.first)
       end
 
       def build_query(query)
@@ -154,7 +162,7 @@ module DataMapper
         end
         query.order.each do |o|
           key = o.property.name.to_s
-          if o.deirection == :asc
+          if o.direction == :asc
             q = q.add_sort(key, DS::Query::SortDirection::ASCENDING)
           else
             q = q.add_sort(key, DS::Query::SortDirection::DESCENDING)
