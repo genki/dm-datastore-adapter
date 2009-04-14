@@ -158,7 +158,7 @@ module DataMapper
           when :lte;  DS::Query::FilterOperator::LESS_THAN_OR_EQUAL
           else next
           end
-          q = q.add_filter(property.name.to_s, ds_op, value)
+          q = q.add_filter(property.name.to_s, ds_op, [value].flatten.first)
         end
         query.order.each do |o|
           key = o.property.name.to_s
