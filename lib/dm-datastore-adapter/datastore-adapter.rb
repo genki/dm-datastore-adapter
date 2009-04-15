@@ -47,8 +47,8 @@ module DataMapper
         resources = read_many(query)
         resources.each do |resource|
           entity = ds_service_get(ds_key_from_resource(resource))
-          attributes.each do |key, value|
-            ds_set(entity, key, value)
+          attributes.each do |property, value|
+            ds_set(entity, property.field, value)
           end
           begin
             ds_key = ds_service_put(entity)
