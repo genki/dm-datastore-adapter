@@ -27,7 +27,7 @@ module DataMapper
             ds_set(entity, key, value)
           end
           begin
-            ds_key = DS::Service.put(entity)
+            ds_key = ds_service_put(entity)
           rescue Exception
           else
             ds_id = ds_key.get_id
@@ -35,7 +35,7 @@ module DataMapper
               resource.attribute_set property.field, ds_id
               ds_set(entity, property.field, ds_id)
             end
-            DS::Service.put(entity)
+            ds_service_put(entity)
             created += 1
           end
         end
@@ -46,12 +46,12 @@ module DataMapper
         updated = 0
         resources = read_many(query)
         resources.each do |resource|
-          entity = DS::Service.get(ds_key_from_resource(resource))
+          entity = ds_service_get(ds_key_from_resource(resource))
           resource.attributes.each do |key, value|
             ds_set(entity, key, value)
           end
           begin
-            ds_key = DS::Service.put(entity)
+            ds_key = ds_service_put(entity)
           rescue Exception
           else
             resource.model.key.each do |property|
@@ -69,7 +69,7 @@ module DataMapper
         resources.each do |resource|
           begin
             ds_key = ds_key_from_resource(resource)
-            DS::Service.delete([ds_key].to_java(DS::Key))
+            ds_service_delete([ds_key].to_java(DS::Key))
           rescue Exception
           else
             deleted += 1
@@ -201,6 +201,30 @@ module DataMapper
           entity.set_property(name.to_s, DS::Text.new(value))
         else
           entity.set_property(name.to_s, value)
+        end
+      end
+
+      def ds_service_get(ds_key)
+        if tx = current_transaction
+          DS::Service.get(tx, ds_key)
+        else
+          DS::Service.get(ds_key)
+        end
+      end
+
+      def ds_service_put(entity)
+        if tx = current_transaction
+          DS::Service.put(tx, entity)
+        else
+          DS::Service.put(entity)
+        end
+      end
+
+      def ds_service_delete(ds_key)
+        if tx = current_transaction
+          DS::Service.delete(tx, ds_key)
+        else
+          DS::Service.delete(ds_key)
         end
       end
     end
