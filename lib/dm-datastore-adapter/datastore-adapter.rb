@@ -64,18 +64,18 @@ module DataMapper
       end
 
       def delete(query)
-        deleted = 0
         resources = read_many(query)
-        resources.each do |resource|
+        ds_keys = resources.map do |resource|
           begin
-            ds_key = ds_key_from_resource(resource)
-            ds_service_delete([ds_key].to_java(DS::Key))
+            ds_key_from_resource(resource)
           rescue Exception
-          else
-            deleted += 1
+            nil
           end
-        end
-        deleted
+        end.compact
+        ds_service_delete(ds_keys.to_java(DS::Key))
+        ds_keys.size
+      rescue Exception
+        0
       end
 
       def read_many(query)
