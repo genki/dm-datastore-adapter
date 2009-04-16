@@ -24,7 +24,7 @@ module DataMapper
         resources.each do |resource|
           entity = DS::Entity.new(resource.class.name)
           resource.attributes.each do |key, value|
-            ds_set(entity, key, value)
+            ds_set(entity, resource.model.properties[key], value)
           end
           begin
             ds_key = ds_service_put(entity)
@@ -33,7 +33,7 @@ module DataMapper
             ds_id = ds_key.get_id
             resource.model.key.each do |property|
               resource.attribute_set property.field, ds_id
-              ds_set(entity, property.field, ds_id)
+              ds_set(entity, property, ds_id)
             end
             ds_service_put(entity)
             created += 1
@@ -48,7 +48,7 @@ module DataMapper
         resources.each do |resource|
           entity = ds_service_get(ds_key_from_resource(resource))
           attributes.each do |property, value|
-            ds_set(entity, property.field, value)
+            ds_set(entity, property, value)
           end
           begin
             ds_key = ds_service_put(entity)
@@ -79,7 +79,8 @@ module DataMapper
       end
 
       def read_many(query)
-        q = build_query(query)
+        negas = {}
+        q = build_query(query){|property, value| negas[property] = value}
         fo = build_fetch_option(query)
         iter = if fo
           DS::Service.prepare(q).as_iterable(fo)
@@ -88,6 +89,7 @@ module DataMapper
         end
         Collection.new(query) do |collection|
           iter.each do |entity|
+            next if negative?(entity, negas)
             collection.load(query.fields.map do |property|
               property.key? ? entity.key.get_id : ds_get(entity, property.field)
             end)
@@ -96,7 +98,8 @@ module DataMapper
       end
 
       def read_one(query)
-        q = build_query(query)
+        negas = {}
+        q = build_query(query){|property, value| negas[property] = value}
         fo = build_fetch_option(query)
         entity = if fo
           DS::Service.prepare(q).as_iterable(fo).map{|i| break i}
@@ -104,6 +107,7 @@ module DataMapper
           DS::Service.prepare(q).asSingleEntity
         end
         return nil if entity.blank?
+        return nil if negative?(entity, negas)
         query.model.load(query.fields.map do |property|
           property.key? ? entity.key.get_id : ds_get(entity, property.field)
         end, query)
@@ -122,9 +126,13 @@ module DataMapper
       end
 
       def count(query)
-        q = build_query(query)
-        count = DS::Service.prepare(q).countEntities
-        [query.limit ? [count, query.limit].min : count]
+        negas = {}
+        q = build_query(query){|property, value| negas[property] = value}
+        result = DS::Service.prepare(q).countEntities
+        unless negas.empty?
+          result -= count(negate_query(query, negas)).first
+        end
+        [query.limit ? [result, query.limit].min : result]
       end
 
     protected
@@ -156,6 +164,7 @@ module DataMapper
           when :gte;  DS::Query::FilterOperator::GREATER_THAN_OR_EQUAL
           when :lt;   DS::Query::FilterOperator::LESS_THAN
           when :lte;  DS::Query::FilterOperator::LESS_THAN_OR_EQUAL
+          when :not;  yield(property, value); next
           else next
           end
           q = q.add_filter(property.name.to_s, ds_op, [value].flatten.first)
@@ -196,16 +205,21 @@ module DataMapper
         end
       end
 
-      def ds_set(entity, name, value)
+      def ds_set(entity, property, value)
+        name = property.field.to_s
+        case value
+        when DateTime
+          value = value.to_time
+        end
         if value.is_a?(String) && value.length >= 500
-          entity.set_property(name.to_s, DS::Text.new(value))
+          entity.set_property(name, DS::Text.new(value))
         else
-          entity.set_property(name.to_s, value)
+          entity.set_property(name, value)
         end
       end
 
       def ds_service_get(ds_key)
-        if tx = current_transaction
+        if tx = ds_transaction
           DS::Service.get(tx, ds_key)
         else
           DS::Service.get(ds_key)
@@ -213,7 +227,7 @@ module DataMapper
       end
 
       def ds_service_put(entity)
-        if tx = current_transaction
+        if tx = ds_transaction
           DS::Service.put(tx, entity)
         else
           DS::Service.put(entity)
@@ -221,11 +235,37 @@ module DataMapper
       end
 
       def ds_service_delete(ds_key)
-        if tx = current_transaction
+        if tx = ds_transaction
           DS::Service.delete(tx, ds_key)
         else
           DS::Service.delete(ds_key)
         end
+      end
+
+      def ds_transaction
+        if tx = current_transaction
+          primitive = tx.primitive_for(self)
+          primitive.transaction
+        else
+          nil
+        end
+      end
+
+      def negative?(entity, negas)
+        negas.any? do |property, value|
+          property.typecast(ds_get(entity, property.field)) == value
+        end
+      end
+
+      def negate_query(query, negas)
+        query = query.dup
+        query.conditions.delete_if do |tuple| 
+          tuple.size != 2 && tuple[0] == :not
+        end
+        negas.each do |property, value|
+          query.conditions.push([:eql, property, value])
+        end
+        query
       end
     end
 
