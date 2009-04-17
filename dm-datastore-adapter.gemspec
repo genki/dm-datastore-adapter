@@ -10,7 +10,7 @@ Gem::Specification.new do |s|
   s.description = %q{This is a DataMapper adapter to DataStore of Google App Engine.}
   s.email = %q{genki@s21g.com}
   s.extra_rdoc_files = ["README", "LICENSE", "TODO"]
-  s.files = ["LICENSE", "README", "Rakefile", "TODO", "lib/appengine-api-1.0-sdk-1.2.0.jar", "lib/dm-datastore-adapter", "lib/dm-datastore-adapter/datastore-adapter.rb", "lib/dm-datastore-adapter/merbtasks.rb", "lib/dm-datastore-adapter/transaction.rb", "lib/dm-datastore-adapter.rb", "spec/dm-datastore-adapter_spec.rb", "spec/spec_helper.rb"]
+  s.files = ["LICENSE", "README", "Rakefile", "TODO", "lib/dm-datastore-adapter", "lib/dm-datastore-adapter/datastore-adapter.rb", "lib/dm-datastore-adapter/merbtasks.rb", "lib/dm-datastore-adapter/transaction.rb", "lib/dm-datastore-adapter.rb", "spec/dm-datastore-adapter_spec.rb", "spec/spec_helper.rb"]
   s.has_rdoc = true
   s.homepage = %q{http://jmerbist.appspot.com/}
   s.require_paths = ["lib"]

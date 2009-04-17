@@ -27,7 +27,8 @@ spec = Gem::Specification.new do |s|
   s.add_dependency('dm-core', '>= 0.9.10')
   s.add_dependency('addressable', '>= 2.0.0')
   s.require_path = 'lib'
-  s.files = %w(LICENSE README Rakefile TODO) + Dir.glob("{lib,spec}/**/*")
+  s.files = %w(LICENSE README Rakefile TODO) +
+    Dir.glob("{lib,spec}/**/*") - ['lib/appengine-api-1.0-sdk-1.2.0.jar']
 end
 
 Rake::GemPackageTask.new(spec) do |pkg|
