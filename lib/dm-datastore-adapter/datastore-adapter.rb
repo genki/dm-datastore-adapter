@@ -197,8 +197,8 @@ module DataMapper
               raise InvalidConditionError,
                 "OR condition is allowed only for :eql operator"
             end
-            value[1..-1].each{|v| yield(:eql, property, v)}
-            value = value.first
+            value, *posis = *value
+            yield(:eql, property, posis) unless posis.empty?
           end
           q = q.add_filter(property.field, ds_op, value)
         end
