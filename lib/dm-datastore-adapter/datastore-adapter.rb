@@ -5,6 +5,8 @@ require 'appengine-api-1.0-sdk-1.2.0.jar'
 module DataMapper
   module Adapters
     class DataStoreAdapter < AbstractAdapter
+      class InvalidConditionError < StandardError; end
+
       module DS
         unless const_defined?("Service")
           import com.google.appengine.api.datastore.DatastoreServiceFactory
@@ -79,27 +81,41 @@ module DataMapper
       end
 
       def read_many(query)
-        negas = {}
-        q = build_query(query){|property, value| negas[property] = value}
-        fo = build_fetch_option(query)
-        iter = if fo
-          DS::Service.prepare(q).as_iterable(fo)
-        else
-          DS::Service.prepare(q).as_iterable
-        end
         Collection.new(query) do |collection|
-          iter.each do |entity|
-            next if negative?(entity, negas)
-            collection.load(query.fields.map do |property|
-              property.key? ? entity.key.get_id : ds_get(entity, property.field)
-            end)
+          loop do
+            negas, posis = {}, {}
+            q = build_query(query) do |op, property, value|
+              negas[property] = value if op == :not
+              posis[property] = value if op == :eql
+            end
+            fo = build_fetch_option(query)
+            iter = if fo
+              DS::Service.prepare(q).as_iterable(fo)
+            else
+              DS::Service.prepare(q).as_iterable
+            end
+            iter.each do |entity|
+              next if negative?(entity, negas)
+              collection.load(query.fields.map do |property|
+                property.key? ?
+                  entity.key.get_id : ds_get(entity, property.field)
+              end)
+            end
+            break if posis.empty?
+            query = assert_query(query, posis)
           end
         end
       end
 
       def read_one(query)
         negas = {}
-        q = build_query(query){|property, value| negas[property] = value}
+        q = build_query(query) do |op, property, value|
+          negas[property] = value if op == :not
+          if op == :eql
+            raise InvalidConditionError,
+              "OR condition is not afflowed for read_one"
+          end
+        end
         fo = build_fetch_option(query)
         entity = if fo
           DS::Service.prepare(q).as_iterable(fo).map{|i| break i}
@@ -126,13 +142,22 @@ module DataMapper
       end
 
       def count(query)
-        negas = {}
-        q = build_query(query){|property, value| negas[property] = value}
-        result = DS::Service.prepare(q).countEntities
-        unless negas.empty?
-          result -= count(negate_query(query, negas)).first
+        result, limit = 0, query.limit
+        loop do
+          negas, posis = {}, {}
+          q = build_query(query) do |op, property, value|
+            negas[property] = value if op == :not
+            posis[property] = value if op == :eql
+          end
+          result += DS::Service.prepare(q).countEntities
+          unless negas.empty?
+            result -= count(negate_query(query, negas)).first
+          end
+          break if posis.empty?
+          break if limit && result >= limit
+          query = assert_query(query, posis)
         end
-        [query.limit ? [result, query.limit].min : result]
+        [limit ? [result, limit].min : result]
       end
 
     protected
@@ -164,10 +189,18 @@ module DataMapper
           when :gte;  DS::Query::FilterOperator::GREATER_THAN_OR_EQUAL
           when :lt;   DS::Query::FilterOperator::LESS_THAN
           when :lte;  DS::Query::FilterOperator::LESS_THAN_OR_EQUAL
-          when :not;  yield(property, value); next
+          when :not;  yield(:not, property, value); next
           else next
           end
-          q = q.add_filter(property.name.to_s, ds_op, [value].flatten.first)
+          if value.is_a?(Array)
+            if op != :eql
+              raise InvalidConditionError,
+                "OR condition is allowed only for :eql operator"
+            end
+            value[1..-1].each{|v| yield(:eql, property, v)}
+            value = value.first
+          end
+          q = q.add_filter(property.field, ds_op, value)
         end
         query.order.each do |o|
           key = o.property.name.to_s
@@ -265,6 +298,16 @@ module DataMapper
         negas.each do |property, value|
           query.conditions.push([:eql, property, value])
         end
+        query
+      end
+
+      def assert_query(query, posis)
+        query = query.dup
+        property = posis.keys.first
+        query.conditions.delete_if do |tuple|
+          tuple.size != 2 && tuple[0] == :eql && tuple[1] == property
+        end
+        query.conditions.push([:eql, property, posis[property]])
         query
       end
     end
