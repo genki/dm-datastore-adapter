@@ -6,7 +6,7 @@ Gem::Specification.new do |s|
 
   s.required_rubygems_version = Gem::Requirement.new(">= 0") if s.respond_to? :required_rubygems_version=
   s.authors = ["Genki Takiuchi"]
-  s.date = %q{2009-04-17}
+  s.date = %q{2009-04-21}
   s.description = %q{This is a DataMapper adapter to DataStore of Google App Engine.}
   s.email = %q{genki@s21g.com}
   s.extra_rdoc_files = ["README", "LICENSE", "TODO"]
@@ -23,14 +23,20 @@ Gem::Specification.new do |s|
     s.specification_version = 2
 
     if Gem::Version.new(Gem::RubyGemsVersion) >= Gem::Version.new('1.2.0') then
-      s.add_runtime_dependency(%q<dm-core>, [">= 0.9.10"])
-      s.add_runtime_dependency(%q<addressable>, [">= 2.0.0"])
+      s.add_runtime_dependency(%q<dm-core>, [">= 0.9.11"])
+      s.add_runtime_dependency(%q<dm-aggregates>, [">= 0.9.11"])
+      s.add_runtime_dependency(%q<dm-types>, [">= 0.9.11"])
+      s.add_runtime_dependency(%q<addressable>, [">= 2.0.2"])
     else
-      s.add_dependency(%q<dm-core>, [">= 0.9.10"])
-      s.add_dependency(%q<addressable>, [">= 2.0.0"])
+      s.add_dependency(%q<dm-core>, [">= 0.9.11"])
+      s.add_dependency(%q<dm-aggregates>, [">= 0.9.11"])
+      s.add_dependency(%q<dm-types>, [">= 0.9.11"])
+      s.add_dependency(%q<addressable>, [">= 2.0.2"])
     end
   else
-    s.add_dependency(%q<dm-core>, [">= 0.9.10"])
-    s.add_dependency(%q<addressable>, [">= 2.0.0"])
+    s.add_dependency(%q<dm-core>, [">= 0.9.11"])
+    s.add_dependency(%q<dm-aggregates>, [">= 0.9.11"])
+    s.add_dependency(%q<dm-types>, [">= 0.9.11"])
+    s.add_dependency(%q<addressable>, [">= 2.0.2"])
   end
 end
