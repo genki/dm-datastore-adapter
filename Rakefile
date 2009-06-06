@@ -24,8 +24,10 @@ spec = Gem::Specification.new do |s|
   s.author = AUTHOR
   s.email = EMAIL
   s.homepage = HOMEPAGE
-  s.add_dependency('dm-core', '>= 0.9.10')
-  s.add_dependency('addressable', '>= 2.0.0')
+  s.add_dependency('dm-core', '>= 0.9.11')
+  s.add_dependency('dm-aggregates', '>= 0.9.11')
+  s.add_dependency('dm-types', '>= 0.9.11')
+  s.add_dependency('addressable', '>= 2.0.2')
   s.require_path = 'lib'
   s.files = %w(LICENSE README Rakefile TODO) +
     Dir.glob("{lib,spec}/**/*") - ['lib/appengine-api-1.0-sdk-1.2.0.jar']
