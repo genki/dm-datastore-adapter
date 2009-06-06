@@ -1,6 +1,6 @@
 require 'java'
 require 'addressable/uri'
-require 'appengine-api-1.0-sdk-1.2.0.jar'
+require 'appengine-api.jar'
 
 module DataMapper
   module Adapters
